@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HUONE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    .page {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── 背景スライドショー ── */
+    .bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      z-index: 0;
+      display: none;
+    }
+    .bg.is-active {
+      display: block;
+    }
+
+    /* bg1: 画像 + ゆっくり動くグラデーションオーバーレイ */
+    #bg1 {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      display: none;
+      overflow: hidden;
+    }
+    #bg1.is-active {
+      display: block;
+    }
+    #bg1 img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+    /* グラデーションが流れるオーバーレイ */
+    #bg1::after {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        125deg,
+        rgba(150, 175, 170, 0.40) 0%,
+        rgba(200, 215, 210, 0.25) 25%,
+        rgba(110, 145, 145, 0.45) 50%,
+        rgba(190, 205, 200, 0.25) 75%,
+        rgba(140, 170, 165, 0.40) 100%
+      );
+      background-size: 300% 300%;
+      animation: gradientDrift 14s ease-in-out infinite alternate;
+      mix-blend-mode: soft-light;
+      pointer-events: none;
+    }
+
+    @keyframes gradientDrift {
+      0%   { transform: translate(0%,   0%)   rotate(0deg);  background-position: 0% 50%; }
+      33%  { transform: translate(8%,  -6%)   rotate(3deg);  background-position: 50% 0%; }
+      66%  { transform: translate(-6%,  8%)   rotate(-2deg); background-position: 100% 50%; }
+      100% { transform: translate(4%,   4%)   rotate(1deg);  background-position: 50% 100%; }
+    }
+
+    /* 16:9キャンバス */
+    .canvas-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(100vw, 177.78vh);
+      height: min(100vh, 56.25vw);
+      z-index: 1;
+    }
+
+    /* graphic_01: 回転 */
+    .graphic-01 {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      mix-blend-mode: screen;
+      transform-origin: 49.95% 49.81%;
+      animation: slowRotate 40s linear infinite;
+    }
+
+    @keyframes slowRotate {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* SVGドットレイヤー */
+    .dots-svg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      mix-blend-mode: screen;
+      overflow: visible;
+    }
+
+    /* ── ナビゲーション ── */
+    /* Menu ボタン（右上・常時表示） */
+    .nav-menu-btn {
+      position: fixed;
+      top: 28px;
+      right: 36px;
+      z-index: 30;
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+      font-weight: 300;
+      font-size: 18px;
+      letter-spacing: 0.05em;
+      color: #c8d4d4;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      transition: opacity 0.2s ease;
+    }
+    .nav-menu-btn:hover { opacity: 0.55; }
+
+    /* メニューオーバーレイ */
+    .nav-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 25;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.45s ease;
+    }
+    .nav-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Close ボタン（右上） */
+    .nav-close-btn {
+      position: absolute;
+      top: 28px;
+      right: 36px;
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+      font-weight: 300;
+      font-size: 18px;
+      letter-spacing: 0.05em;
+      color: #c8d4d4;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 0;
+      transition: opacity 0.2s ease;
+    }
+    .nav-close-btn:hover { opacity: 0.55; }
+
+    /* About / Category リンク（左上） */
+    .nav-links {
+      position: absolute;
+      top: 22px;
+      left: 36px;
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      gap: 28px;
+    }
+
+    .nav-links a {
+      font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+      font-weight: 300;
+      font-size: 18px;
+      letter-spacing: 0.05em;
+      color: #c8d4d4;
+      text-decoration: none;
+      transition: opacity 0.2s ease;
+      white-space: nowrap;
+    }
+    .nav-links a:first-child {
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+    .nav-links a:hover { opacity: 0.55; }
+
+    /* SP */
+    @media (max-width: 600px) {
+      /* 横長SPはvw基準、縦長SPはvh基準でcanvasを収める */
+      .canvas-wrap {
+        width: min(100vw, 100vh);
+        height: min(56.25vw, 56.25vh);
+      }
+      /* 縦長（portrait）: 画面幅より少し大きめに表示 */
+      @media (orientation: portrait) {
+        .canvas-wrap {
+          width: 160vw;
+          height: 90vw;
+        }
+      }
+      .nav-menu-btn,
+      .nav-close-btn {
+        top: 20px;
+        right: 20px;
+        font-size: 16px;
+      }
+      .nav-links {
+        top: 18px;
+        left: 20px;
+        gap: 20px;
+      }
+      .nav-links a { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- 背景3枚（スライドショー） -->
+  <img class="bg is-active" id="bg0" src="0605_huone_design_back.jpg" alt="">
+  <div id="bg1">
+    <img src="0605_huone_design_back_02.png" alt="">
+  </div>
+  <img class="bg" id="bg2" src="0605_huone_design_back_03.png" alt="">
+
+  <div class="canvas-wrap">
+    <!-- graphic_01: ゆっくり回転 -->
+    <img class="graphic-01" src="0605_huone_design_graphic_01.png" alt="">
+
+    <!-- SVGドット -->
+    <svg class="dots-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <g id="dots-group"></g>
+    </svg>
+  </div>
+
+  <!-- Menu ボタン（閉じた状態で表示） -->
+  <button class="nav-menu-btn" id="menuBtn">Menu</button>
+
+  <!-- オーバーレイ（開いた状態） -->
+  <div class="nav-overlay" id="navOverlay">
+    <div class="nav-links">
+      <a href="#">Top</a>
+      <a href="#">About</a>
+      <a href="#">Contact</a>
+    </div>
+    <button class="nav-close-btn" id="closeBtn">Close</button>
+  </div>
+
+</div>
+
+<script>
+// ── メニュー開閉 ──
+const menuBtn    = document.getElementById('menuBtn');
+const closeBtn   = document.getElementById('closeBtn');
+const navOverlay = document.getElementById('navOverlay');
+
+menuBtn.addEventListener('click', () => {
+  navOverlay.classList.add('is-open');
+  menuBtn.style.opacity = '0';
+  menuBtn.style.pointerEvents = 'none';
+});
+
+closeBtn.addEventListener('click', () => {
+  navOverlay.classList.remove('is-open');
+  menuBtn.style.opacity = '';
+  menuBtn.style.pointerEvents = '';
+});
+
+// ── 背景スライドショー（5秒ごと） ──
+const bgs = [
+  document.getElementById('bg0'),
+  document.getElementById('bg1'),
+  document.getElementById('bg2'),
+];
+let bgIndex = 0;
+
+// テキスト色を切り替える要素
+const navEls = document.querySelectorAll(
+  '.nav-menu-btn, .nav-close-btn, .nav-links a'
+);
+
+function updateNavColor(index) {
+  const darkColor = '#444444';
+  const lightColor = '#c8d4d4';
+  const color = index === 2 ? darkColor : lightColor;
+  navEls.forEach(el => {
+    el.style.transition = 'color 0.5s ease';
+    el.style.color = color;
+  });
+}
+
+setInterval(() => {
+  bgs[bgIndex].classList.remove('is-active');
+  bgIndex = (bgIndex + 1) % bgs.length;
+  bgs[bgIndex].classList.add('is-active');
+  updateNavColor(bgIndex);
+}, 5000);
+
+// ── ドットデータ ──
+const ORIGINAL_DOTS = [
+  { cx: 52.396, cy: 30.185, r: 0.573, color: [146,166,170] },
+  { cx: 50.547, cy: 33.056, r: 0.573, color: [156,174,177] },
+  { cx: 43.854, cy: 34.074, r: 0.573, color: [161,176,176] },
+  { cx: 51.979, cy: 36.019, r: 0.573, color: [155,172,173] },
+  { cx: 45.729, cy: 36.944, r: 0.573, color: [159,173,173] },
+  { cx: 50.964, cy: 37.731, r: 0.547, color: [158,175,175] },
+  { cx: 54.583, cy: 38.796, r: 0.573, color: [155,172,171] },
+  { cx: 44.323, cy: 39.907, r: 0.573, color: [168,178,176] },
+  { cx: 45.312, cy: 41.667, r: 0.573, color: [168,178,176] },
+  { cx: 52.500, cy: 44.630, r: 0.573, color: [165,176,173] },
+  { cx: 56.849, cy: 45.926, r: 0.573, color: [169,177,175] },
+  { cx: 45.729, cy: 48.611, r: 0.573, color: [186,184,178] },
+  { cx: 58.021, cy: 48.981, r: 0.573, color: [173,178,174] },
+  { cx: 51.927, cy: 50.000, r: 0.573, color: [180,181,176] },
+  { cx: 43.594, cy: 50.139, r: 0.573, color: [191,186,181] },
+  { cx: 49.141, cy: 52.222, r: 0.573, color: [190,186,180] },
+  { cx: 55.729, cy: 54.444, r: 0.573, color: [187,181,174] },
+  { cx: 50.391, cy: 60.278, r: 0.573, color: [205,191,181] },
+  { cx: 54.167, cy: 60.463, r: 0.573, color: [199,186,177] },
+  { cx: 50.964, cy: 65.278, r: 0.573, color: [213,195,185] },
+  { cx: 43.359, cy: 65.880, r: 0.599, color: [217,196,186] },
+  { cx: 48.177, cy: 72.500, r: 0.573, color: [211,190,178] },
+];
+
+const BOUNDS = { minX: 40.0, maxX: 61.0, minY: 28.0, maxY: 75.0 };
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function randInRange(min, max) { return min + Math.random() * (max - min); }
+
+const group = document.getElementById('dots-group');
+const circles = [];
+const dotPositions = [];
+
+ORIGINAL_DOTS.forEach((d) => {
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  const [r, g, b] = d.color;
+  const initCx = d.cx / 100 * 1920;
+  const initCy = d.cy / 100 * 1080;
+  const initR  = d.r  / 100 * 1920;
+  circle.setAttribute('cx', initCx);
+  circle.setAttribute('cy', initCy);
+  circle.setAttribute('r',  initR);
+  circle.setAttribute('fill', `rgb(${r},${g},${b})`);
+  circle.style.opacity = '1';
+  circle.style.transition = 'opacity 0.5s ease';
+  group.appendChild(circle);
+  circles.push({ el: circle, orig: d });
+  dotPositions.push({ cx: initCx, cy: initCy, r: initR, displaced: false, fleeing: false });
+});
+
+let queue = shuffle([...Array(ORIGINAL_DOTS.length).keys()]);
+
+function animateNext() {
+  if (queue.length === 0) queue = shuffle([...Array(ORIGINAL_DOTS.length).keys()]);
+  const count = Math.random() < 0.4 ? 2 : 1;
+  const targets = queue.splice(0, count);
+  targets.forEach(idx => {
+    if (dotPositions[idx].displaced) return;
+    const el = circles[idx].el;
+    el.style.opacity = '0';
+    setTimeout(() => {
+      const newCx = randInRange(BOUNDS.minX, BOUNDS.maxX) / 100 * 1920;
+      const newCy = randInRange(BOUNDS.minY, BOUNDS.maxY) / 100 * 1080;
+      el.setAttribute('cx', newCx);
+      el.setAttribute('cy', newCy);
+      dotPositions[idx].cx = newCx;
+      dotPositions[idx].cy = newCy;
+      el.style.opacity = '1';
+    }, 520);
+  });
+}
+setInterval(animateNext, 1200);
+
+// ── マウス近接：消えて別の場所に移動 ──
+const svgEl = document.querySelector('.dots-svg');
+let mouseSvgX = -9999, mouseSvgY = -9999;
+const MOUSE_RADIUS = 120; // 反応半径
+
+function getSvgPos(e) {
+  const rect = svgEl.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (cx - rect.left) * 1920 / rect.width, y: (cy - rect.top) * 1080 / rect.height };
+}
+
+document.addEventListener('mousemove', e => {
+  const p = getSvgPos(e); mouseSvgX = p.x; mouseSvgY = p.y; checkProximity();
+});
+document.addEventListener('mouseleave', () => { mouseSvgX = -9999; mouseSvgY = -9999; });
+document.addEventListener('touchmove', e => {
+  const p = getSvgPos(e); mouseSvgX = p.x; mouseSvgY = p.y; checkProximity();
+}, { passive: true });
+document.addEventListener('touchend', () => { mouseSvgX = -9999; mouseSvgY = -9999; });
+
+function checkProximity() {
+  circles.forEach((c, idx) => {
+    const pos = dotPositions[idx];
+    if (pos.fleeing) return; // 逃走中は無視
+    const dx = pos.cx - mouseSvgX, dy = pos.cy - mouseSvgY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < MOUSE_RADIUS && dist >= 0) {
+      pos.fleeing = true;
+      const el = c.el;
+      // フェードアウト
+      el.style.transition = 'opacity 0.3s ease';
+      el.style.opacity = '0';
+      setTimeout(() => {
+        // 別のランダム位置へ移動
+        const newCx = randInRange(BOUNDS.minX, BOUNDS.maxX) / 100 * 1920;
+        const newCy = randInRange(BOUNDS.minY, BOUNDS.maxY) / 100 * 1080;
+        el.setAttribute('cx', newCx);
+        el.setAttribute('cy', newCy);
+        pos.cx = newCx;
+        pos.cy = newCy;
+        // フェードイン
+        el.style.opacity = '1';
+        setTimeout(() => { pos.fleeing = false; }, 600);
+      }, 320);
+    }
+  });
+}
+</script>
+</body>
+</html>
